@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, X, Clock, Footprints, Search, RotateCcw, Award } from 'lucide-react';
+import { Trophy, X, Clock, Footprints, Search, RotateCcw, Award, Database } from 'lucide-react';
 import { BoardSize, LeaderboardEntry } from '../types';
 import { formatTime } from '../utils/gameLogic';
+import { fetchDbStatus } from '../utils/storage';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -23,6 +24,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const [sortBy, setSortBy] = useState<'score' | 'tile' | 'time' | 'moves'>('score');
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
+  const [dbInfo, setDbInfo] = useState<{ isConnected: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchDbStatus().then((info) => {
+        if (info) {
+          setDbInfo({ isConnected: info.isConnected, message: info.message });
+        }
+      });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -99,9 +111,24 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <Trophy className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-black tracking-tight text-white">
-                  High Scores Leaderboard
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-black tracking-tight text-white">
+                    High Scores Leaderboard
+                  </h2>
+                  {dbInfo && (
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border ${
+                        dbInfo.isConnected
+                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                          : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                      }`}
+                      title={dbInfo.message}
+                    >
+                      <Database className="w-3 h-3" />
+                      <span>{dbInfo.isConnected ? 'MongoDB Cloud Active' : 'Local / Offline Mode'}</span>
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-400">
                   Hall of Fame and top runs across all grid sizes
                 </p>

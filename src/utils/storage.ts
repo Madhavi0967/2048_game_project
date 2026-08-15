@@ -58,6 +58,65 @@ const DEFAULT_BENCHMARK_LEADERBOARD: LeaderboardEntry[] = [
   },
 ];
 
+export async function fetchRemoteLeaderboard(): Promise<{ entries: LeaderboardEntry[]; source: string } | null> {
+  try {
+    const res = await fetch('/api/leaderboard');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.entries) && data.entries.length > 0) {
+        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(data.entries));
+      }
+      return data;
+    }
+  } catch {
+    // API not reachable or offline
+  }
+  return null;
+}
+
+export async function fetchDbStatus(): Promise<{
+  status: string;
+  databaseType: string;
+  uriConfigured: boolean;
+  isConnected: boolean;
+  message: string;
+} | null> {
+  try {
+    const res = await fetch('/api/db-status');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Offline or static mode
+  }
+  return null;
+}
+
+export async function saveRemoteLeaderboardEntry(
+  entry: Omit<LeaderboardEntry, 'id' | 'date'>
+): Promise<LeaderboardEntry> {
+  // Always save locally first for instant snappy response
+  const localSaved = saveLeaderboardEntry(entry);
+
+  try {
+    const res = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.entry) {
+        return data.entry;
+      }
+    }
+  } catch {
+    // Silently fall back to local
+  }
+
+  return localSaved;
+}
+
 export function getLeaderboard(): LeaderboardEntry[] {
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);

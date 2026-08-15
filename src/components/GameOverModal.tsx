@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
-import { Trophy, RotateCcw, Save, Flame, Check } from 'lucide-react';
+import { Trophy, RotateCcw, Save, Flame, Check, Undo2, Sparkles } from 'lucide-react';
 import { BoardSize } from '../types';
 import { formatTime } from '../utils/gameLogic';
 
@@ -14,6 +14,10 @@ interface GameOverModalProps {
   moves: number;
   elapsedSeconds: number;
   initialPlayerName: string;
+  undoCount: number;
+  canUndo: boolean;
+  onUndo: () => void;
+  onReviveWithUndos: () => void;
   onSaveScore: (playerName: string) => void;
   onRestart: () => void;
   onContinue: () => void;
@@ -29,6 +33,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   moves,
   elapsedSeconds,
   initialPlayerName,
+  undoCount,
+  canUndo,
+  onUndo,
+  onReviveWithUndos,
   onSaveScore,
   onRestart,
   onContinue,
@@ -96,7 +104,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </p>
 
           {/* Key Stats Cards */}
-          <div className="grid grid-cols-2 gap-2.5 my-5">
+          <div className="grid grid-cols-2 gap-2.5 my-4">
             <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Final Score
@@ -125,7 +133,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </div>
 
           {/* Submit to Leaderboard Form */}
-          <form onSubmit={handleSave} className="mb-5 text-left">
+          <form onSubmit={handleSave} className="mb-4 text-left">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Record to Leaderboard
             </label>
@@ -176,7 +184,30 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </form>
 
           {/* Action Buttons */}
-          <div className="space-y-2">
+          <div className="space-y-2.5">
+            {/* 1. Undo / Revive and Continue playing button */}
+            {!isWin && canUndo && undoCount > 0 && (
+              <button
+                id="game-over-undo-btn"
+                onClick={onUndo}
+                className="w-full py-3 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-transform active:scale-98 cursor-pointer"
+              >
+                <Undo2 className="w-4 h-4" />
+                <span>Undo Last Move & Continue ({undoCount} left)</span>
+              </button>
+            )}
+
+            {!isWin && canUndo && undoCount <= 0 && (
+              <button
+                id="game-over-revive-btn"
+                onClick={onReviveWithUndos}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-violet-600 hover:from-amber-400 hover:to-violet-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.4)] transition-transform active:scale-98 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-slate-950" />
+                <span>+2 Emergency Undos & Continue</span>
+              </button>
+            )}
+
             {isWin && (
               <button
                 id="continue-game-btn"

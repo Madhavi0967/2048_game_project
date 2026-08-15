@@ -26,6 +26,8 @@ import {
 import {
   getLeaderboard,
   saveLeaderboardEntry,
+  fetchRemoteLeaderboard,
+  saveRemoteLeaderboardEntry,
   clearLeaderboard,
   getBestScores,
   updateBestScore,
@@ -72,9 +74,9 @@ export default function App() {
   const [hasWon, setHasWon] = useState<boolean>(false);
   const [hasContinuedAfterWin, setHasContinuedAfterWin] = useState<boolean>(false);
 
-  // Power-Ups System (Undo: 2 uses, Swap: 2 uses, Delete: 2 uses)
+  // Power-Ups System (Undo: 3 uses default + Emergency undos on game over, Swap: 2 uses, Delete: 2 uses)
   const [powerUps, setPowerUps] = useState<PowerUpsState>({
-    undo: 2,
+    undo: 3,
     swap: 2,
     delete: 2,
   });
@@ -118,6 +120,15 @@ export default function App() {
     };
   }, [status]);
 
+  // Initial remote database sync
+  useEffect(() => {
+    fetchRemoteLeaderboard().then((res) => {
+      if (res && res.entries && res.entries.length > 0) {
+        setLeaderboard(res.entries);
+      }
+    });
+  }, []);
+
   // Handle Escape key to cancel powerup mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -145,7 +156,7 @@ export default function App() {
     setIsMuted(muted);
   };
 
-  // Restart / New Game (resets power-up counts back to 2 each)
+  // Restart / New Game (resets power-up counts)
   const startNewGame = useCallback((boardSize: BoardSize = size) => {
     const newTiles = initializeBoard(boardSize);
     setTiles(newTiles);
@@ -158,9 +169,9 @@ export default function App() {
     setHasContinuedAfterWin(false);
     setIsGameOverModalOpen(false);
     setPointsAdded([]);
-    // Reset power-ups
+    // Reset power-ups (3 Undos default, 2 Swaps, 2 Deletes)
     setPowerUps({
-      undo: 2,
+      undo: 3,
       swap: 2,
       delete: 2,
     });
@@ -191,14 +202,14 @@ export default function App() {
       return; // No movement occurred
     }
 
-    // Save previous state to history stack for Undo
+    // Save previous state to history stack for Undo (store up to 30 moves)
     setHistory((prev) => [
       {
         tiles: tiles.map((t) => ({ ...t })),
         score,
         moveCount,
       },
-      ...prev.slice(0, 14),
+      ...prev.slice(0, 29),
     ]);
 
     // Audio feedback
@@ -268,15 +279,36 @@ export default function App() {
     }
   }, [status, hasContinuedAfterWin, isGameOverModalOpen, activePowerUp, tiles, size, score, moveCount, bestScores, hasWon, highestTile, elapsedSeconds]);
 
-  // Undo Move (2 Times Limit per game)
+  // Undo Move (Restores previous board state & resumes play)
   const handleUndo = () => {
-    if (history.length === 0 || powerUps.undo <= 0) return;
+    if (history.length === 0) return;
+    if (powerUps.undo <= 0) {
+      handleReviveWithUndos();
+      return;
+    }
     const [previousState, ...remainingHistory] = history;
     setTiles(previousState.tiles);
     setScore(previousState.score);
     setMoveCount(previousState.moveCount);
     setHistory(remainingHistory);
     setPowerUps((prev) => ({ ...prev, undo: Math.max(0, prev.undo - 1) }));
+    setStatus('playing');
+    setIsGameOverModalOpen(false);
+    setActivePowerUp(null);
+    setSelectedTileForSwap(null);
+    sound.playUndo();
+  };
+
+  // Revive with Emergency Undos when Game Over occurs
+  const handleReviveWithUndos = () => {
+    if (history.length === 0) return;
+    const [previousState, ...remainingHistory] = history;
+    setTiles(previousState.tiles);
+    setScore(previousState.score);
+    setMoveCount(previousState.moveCount);
+    setHistory(remainingHistory);
+    // Give +2 undos, use 1 immediately for the rewind
+    setPowerUps((prev) => ({ ...prev, undo: prev.undo + 1 }));
     setStatus('playing');
     setIsGameOverModalOpen(false);
     setActivePowerUp(null);
@@ -393,9 +425,9 @@ export default function App() {
     setIsGameOverModalOpen(false);
   };
 
-  // Save Score to Leaderboard
-  const handleSaveScore = (name: string) => {
-    saveLeaderboardEntry({
+  // Save Score to Leaderboard (MongoDB / Local)
+  const handleSaveScore = async (name: string) => {
+    const saved = await saveRemoteLeaderboardEntry({
       playerName: name,
       score,
       highestTile,
@@ -404,7 +436,11 @@ export default function App() {
       durationSeconds: elapsedSeconds,
       theme: themeName,
     });
-    setLeaderboard(getLeaderboard());
+    setLeaderboard((prev) => {
+      const exists = prev.some((e) => e.id === saved.id);
+      const list = exists ? prev : [saved, ...prev];
+      return list.sort((a, b) => b.score - a.score).slice(0, 100);
+    });
     setInitialPlayerName(name);
   };
 
@@ -523,6 +559,10 @@ export default function App() {
         moves={moveCount}
         elapsedSeconds={elapsedSeconds}
         initialPlayerName={initialPlayerName}
+        undoCount={powerUps.undo}
+        canUndo={history.length > 0}
+        onUndo={handleUndo}
+        onReviveWithUndos={handleReviveWithUndos}
         onSaveScore={handleSaveScore}
         onRestart={() => startNewGame(size)}
         onContinue={handleContinuePlaying}

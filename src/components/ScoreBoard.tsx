@@ -129,7 +129,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
       <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
         <div className="flex items-center gap-1.5 text-sky-400">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Game Power-Ups (2 Uses Each)</span>
+          <span>Game Power-Ups & Rewinds</span>
         </div>
         <span className="text-slate-500 font-medium lowercase">per game session</span>
       </div>
@@ -143,8 +143,8 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
           disabled={!canUndo || powerUps.undo <= 0}
           title={
             powerUps.undo > 0
-              ? `Undo last move (${powerUps.undo}/2 left)`
-              : 'No undos remaining'
+              ? `Undo last move (${powerUps.undo} left)`
+              : 'No undos remaining (available on Game Over)'
           }
           className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-2 rounded-2xl font-bold text-xs transition-all border backdrop-blur-md cursor-pointer ${
             canUndo && powerUps.undo > 0
@@ -161,7 +161,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                 : 'bg-slate-800 text-slate-500'
             }`}
           >
-            {powerUps.undo}/2
+            {powerUps.undo}
           </span>
         </button>
 
@@ -172,7 +172,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
           disabled={powerUps.swap <= 0}
           title={
             powerUps.swap > 0
-              ? `Swap two tiles on the board (${powerUps.swap}/2 left)`
+              ? `Swap two tiles on the board (${powerUps.swap} left)`
               : 'No swaps remaining'
           }
           className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-2 rounded-2xl font-bold text-xs transition-all border backdrop-blur-md cursor-pointer ${
@@ -198,7 +198,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                 : 'bg-slate-800 text-slate-500'
             }`}
           >
-            {powerUps.swap}/2
+            {powerUps.swap}
           </span>
         </button>
 
@@ -209,7 +209,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
           disabled={powerUps.delete <= 0}
           title={
             powerUps.delete > 0
-              ? `Delete/destroy any tile on board (${powerUps.delete}/2 left)`
+              ? `Delete/destroy any tile on board (${powerUps.delete} left)`
               : 'No deletes remaining'
           }
           className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-2 rounded-2xl font-bold text-xs transition-all border backdrop-blur-md cursor-pointer ${
@@ -235,7 +235,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                 : 'bg-slate-800 text-slate-500'
             }`}
           >
-            {powerUps.delete}/2
+            {powerUps.delete}
           </span>
         </button>
 
