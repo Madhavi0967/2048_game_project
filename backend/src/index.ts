@@ -170,12 +170,39 @@ app.get('/api/leaderboard', async (req: Request, res: Response) => {
 
     if (database) {
       const collection = database.collection('leaderboard');
-      const filter = boardSizeQuery ? { boardSize: boardSizeQuery } : {};
-      const entries = await collection
-        .find(filter, { projection: { _id: 0 } })
-        .sort({ score: -1 })
-        .limit(limit)
-        .toArray();
+      // Build aggregation: filter by size (optional), then keep only the highest
+      // score per player, and sort by score descending.
+      const pipeline: any[] = [];
+
+      if (boardSizeQuery) {
+        pipeline.push({ $match: { boardSize: boardSizeQuery } });
+      }
+
+      pipeline.push(
+        {
+          $sort: { score: -1, createdAt: -1 },
+        },
+        {
+          $group: {
+            _id: '$playerName',
+            doc: { $first: '$$ROOT' },
+          },
+        },
+        {
+          $replaceRoot: { newRoot: '$doc' },
+        },
+        {
+          $sort: { score: -1, createdAt: -1 },
+        },
+        {
+          $limit: limit,
+        },
+        {
+          $project: { _id: 0 },
+        }
+      );
+
+      const entries = await collection.aggregate(pipeline).toArray();
 
       return res.json({ source: 'mongodb', entries });
     }
@@ -185,9 +212,19 @@ app.get('/api/leaderboard', async (req: Request, res: Response) => {
     if (boardSizeQuery) {
       filtered = filtered.filter((e) => e.boardSize === boardSizeQuery);
     }
-    filtered.sort((a, b) => b.score - a.score);
 
-    return res.json({ source: 'local', entries: filtered.slice(0, limit) });
+    // Keep the best score per player name
+    const bestPerPlayer = new Map<string, any>();
+    for (const e of filtered) {
+      const existing = bestPerPlayer.get(e.playerName);
+      if (!existing || e.score > existing.score) {
+        bestPerPlayer.set(e.playerName, e);
+      }
+    }
+    const deduped = Array.from(bestPerPlayer.values());
+    deduped.sort((a, b) => b.score - a.score);
+
+    return res.json({ source: 'local', entries: deduped.slice(0, limit) });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     return res.status(500).json({ error: 'Failed to fetch leaderboard' });

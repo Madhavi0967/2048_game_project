@@ -6,68 +6,19 @@ const BEST_SCORES_KEY = '2048_best_scores_v1';
 const STATS_KEY = '2048_stats_v1';
 const LAST_PLAYER_NAME_KEY = '2048_last_player_name';
 
-const DEFAULT_BENCHMARK_LEADERBOARD: LeaderboardEntry[] = [
-  {
-    id: 'seed-1',
-    playerName: 'TileMaster_Alex',
-    score: 28460,
-    highestTile: 2048,
-    boardSize: 4,
-    moves: 942,
-    durationSeconds: 610,
-    date: '2026-08-10',
-  },
-  {
-    id: 'seed-2',
-    playerName: 'GridRunner',
-    score: 21980,
-    highestTile: 2048,
-    boardSize: 4,
-    moves: 785,
-    durationSeconds: 520,
-    date: '2026-08-11',
-  },
-  {
-    id: 'seed-3',
-    playerName: 'QuantumSlide',
-    score: 16840,
-    highestTile: 1024,
-    boardSize: 4,
-    moves: 612,
-    durationSeconds: 430,
-    date: '2026-08-12',
-  },
-  {
-    id: 'seed-4',
-    playerName: 'FastPaced3x3',
-    score: 3420,
-    highestTile: 512,
-    boardSize: 3,
-    moves: 210,
-    durationSeconds: 140,
-    date: '2026-08-13',
-  },
-  {
-    id: 'seed-5',
-    playerName: 'MegaGrid5x5',
-    score: 48900,
-    highestTile: 4096,
-    boardSize: 5,
-    moves: 1680,
-    durationSeconds: 1120,
-    date: '2026-08-13',
-  },
-];
+const EMPTY_LEADERBOARD: LeaderboardEntry[] = [];
 
 export async function fetchRemoteLeaderboard(): Promise<{ entries: LeaderboardEntry[]; source: string } | null> {
   try {
     const res = await fetch(`${API_BASE}/api/leaderboard`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.entries) && data.entries.length > 0) {
-        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(data.entries));
-      }
-      return data;
+      const entries: LeaderboardEntry[] = Array.isArray(data.entries) ? data.entries : [];
+      // The database is the source of truth: always overwrite the local cache
+      // (this removes any stale/demo entries) and sort by score descending.
+      const sorted = [...entries].sort((a, b) => b.score - a.score);
+      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(sorted));
+      return { entries: sorted, source: data.source || 'local' };
     }
   } catch {
     // API not reachable or offline
@@ -122,12 +73,12 @@ export function getLeaderboard(): LeaderboardEntry[] {
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
     if (!raw) {
-      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(DEFAULT_BENCHMARK_LEADERBOARD));
-      return DEFAULT_BENCHMARK_LEADERBOARD;
+      return EMPTY_LEADERBOARD;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : EMPTY_LEADERBOARD;
   } catch {
-    return DEFAULT_BENCHMARK_LEADERBOARD;
+    return EMPTY_LEADERBOARD;
   }
 }
 
@@ -139,9 +90,17 @@ export function saveLeaderboardEntry(entry: Omit<LeaderboardEntry, 'id' | 'date'
     date: new Date().toISOString().split('T')[0],
   };
 
-  const updated = [newEntry, ...current].sort((a, b) => b.score - a.score);
-  // Keep up to 100 entries
-  const trimmed = updated.slice(0, 100);
+  // Keep only the best score per player name, then sort by score descending.
+  const bestPerPlayer = new Map<string, LeaderboardEntry>();
+  const all = [newEntry, ...current];
+  for (const e of all) {
+    const existing = bestPerPlayer.get(e.playerName);
+    if (!existing || e.score > existing.score) {
+      bestPerPlayer.set(e.playerName, e);
+    }
+  }
+  const deduped = Array.from(bestPerPlayer.values());
+  const trimmed = deduped.sort((a, b) => b.score - a.score).slice(0, 100);
 
   try {
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(trimmed));

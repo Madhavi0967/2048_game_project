@@ -439,7 +439,7 @@ export default function App() {
 
   // Save Score to Leaderboard (MongoDB / Local)
   const handleSaveScore = async (name: string) => {
-    const saved = await saveRemoteLeaderboardEntry({
+    await saveRemoteLeaderboardEntry({
       playerName: name,
       score,
       highestTile,
@@ -448,11 +448,13 @@ export default function App() {
       durationSeconds: elapsedSeconds,
       theme: themeName,
     });
-    setLeaderboard((prev) => {
-      const exists = prev.some((e) => e.id === saved.id);
-      const list = exists ? prev : [saved, ...prev];
-      return list.sort((a, b) => b.score - a.score).slice(0, 100);
-    });
+
+    // Refetch the authoritative leaderboard from the database so the ranking
+    // (highest score per player, sorted desc) is always accurate.
+    const res = await fetchRemoteLeaderboard();
+    if (res && res.entries) {
+      setLeaderboard(res.entries);
+    }
     setInitialPlayerName(name);
   };
 
