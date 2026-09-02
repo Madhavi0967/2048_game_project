@@ -1,4 +1,5 @@
 import { BoardSize, GameStats, LeaderboardEntry } from '../types';
+import { API_BASE } from './api';
 
 const LEADERBOARD_KEY = '2048_leaderboard_v1';
 const BEST_SCORES_KEY = '2048_best_scores_v1';
@@ -60,7 +61,7 @@ const DEFAULT_BENCHMARK_LEADERBOARD: LeaderboardEntry[] = [
 
 export async function fetchRemoteLeaderboard(): Promise<{ entries: LeaderboardEntry[]; source: string } | null> {
   try {
-    const res = await fetch('/api/leaderboard');
+    const res = await fetch(`${API_BASE}/api/leaderboard`);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.entries) && data.entries.length > 0) {
@@ -82,7 +83,7 @@ export async function fetchDbStatus(): Promise<{
   message: string;
 } | null> {
   try {
-    const res = await fetch('/api/db-status');
+    const res = await fetch(`${API_BASE}/api/db-status`);
     if (res.ok) {
       return await res.json();
     }
@@ -99,7 +100,7 @@ export async function saveRemoteLeaderboardEntry(
   const localSaved = saveLeaderboardEntry(entry);
 
   try {
-    const res = await fetch('/api/leaderboard', {
+    const res = await fetch(`${API_BASE}/api/leaderboard`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry),

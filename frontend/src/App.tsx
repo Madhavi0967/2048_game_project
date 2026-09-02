@@ -14,9 +14,11 @@ import {
   PowerUpType,
   ThemeName,
   Tile,
+  UserProfile,
 } from './types';
 import { THEMES } from './utils/themes';
 import { sound } from './utils/sound';
+import { getStoredUser, logoutUser } from './utils/auth';
 import {
   initializeBoard,
   moveBoard,
@@ -45,6 +47,8 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { GameOverModal } from './components/GameOverModal';
 import { StatsModal } from './components/StatsModal';
 import { HowToPlayModal } from './components/HowToPlayModal';
+import { AuthModal } from './components/AuthModal';
+import { AuthScreen } from './components/AuthScreen';
 
 const SAVED_THEME_KEY = '2048_active_theme_v1';
 
@@ -91,6 +95,14 @@ export default function App() {
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  // Authenticated User State
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getStoredUser());
+  const [hasEnteredGame, setHasEnteredGame] = useState<boolean>(() => {
+    // If already logged in, enter game directly; otherwise show login/signup screen first
+    return Boolean(getStoredUser());
+  });
 
   // Stored Records
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard());
@@ -450,6 +462,22 @@ export default function App() {
     setLeaderboard([]);
   };
 
+  // Show Login / Sign-up Screen FIRST if user is not logged in yet
+  if (!hasEnteredGame && !currentUser) {
+    return (
+      <AuthScreen
+        onAuthenticated={(user) => {
+          setCurrentUser(user);
+          setInitialPlayerName(user.username);
+          setHasEnteredGame(true);
+        }}
+        onPlayAsGuest={() => {
+          setHasEnteredGame(true);
+        }}
+      />
+    );
+  }
+
   return (
     <div
       className={`min-h-screen w-full relative transition-colors duration-300 flex flex-col items-center justify-between ${currentTheme.bg} ${currentTheme.textColor} px-3 sm:px-6 py-4 sm:py-6 overflow-x-hidden`}
@@ -467,6 +495,14 @@ export default function App() {
           score={score}
           bestScore={bestScore}
           size={size}
+          currentUser={currentUser}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onLogout={() => {
+            logoutUser();
+            setCurrentUser(null);
+            setHasEnteredGame(false);
+            sound.playUndo();
+          }}
           onToggleSound={handleToggleSound}
           onSelectTheme={handleSelectTheme}
           onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
@@ -558,7 +594,7 @@ export default function App() {
         boardSize={size}
         moves={moveCount}
         elapsedSeconds={elapsedSeconds}
-        initialPlayerName={initialPlayerName}
+        initialPlayerName={currentUser?.username || initialPlayerName}
         undoCount={powerUps.undo}
         canUndo={history.length > 0}
         onUndo={handleUndo}
@@ -569,6 +605,16 @@ export default function App() {
         onOpenLeaderboard={() => {
           setIsGameOverModalOpen(false);
           setIsLeaderboardOpen(true);
+        }}
+      />
+
+      {/* Login & Sign Up Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          setInitialPlayerName(user.username);
         }}
       />
 

@@ -1,6 +1,0 @@
-{
-  "name": "2048 Game & Leaderboard",
-  "description": "Play classic 2048 with smooth sliding animations, responsive keyboard and touch swipe controls, undo history, multiple board modes, and a persistent leaderboard tracking high scores, moves, and times.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

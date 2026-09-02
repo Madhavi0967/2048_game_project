@@ -1,6 +1,6 @@
 import React from 'react';
-import { Trophy, BarChart3, HelpCircle, Volume2, VolumeX, Palette } from 'lucide-react';
-import { ThemeConfig, ThemeName } from '../types';
+import { Trophy, BarChart3, HelpCircle, Volume2, VolumeX, Palette, User as UserIcon, LogOut } from 'lucide-react';
+import { ThemeConfig, ThemeName, UserProfile } from '../types';
 import { THEMES } from '../utils/themes';
 
 interface HeaderProps {
@@ -9,6 +9,9 @@ interface HeaderProps {
   score: number;
   bestScore: number;
   size: number;
+  currentUser: UserProfile | null;
+  onOpenAuth: () => void;
+  onLogout: () => void;
   onToggleSound: () => void;
   onSelectTheme: (themeName: ThemeName) => void;
   onOpenLeaderboard: () => void;
@@ -22,6 +25,9 @@ export const Header: React.FC<HeaderProps> = ({
   score,
   bestScore,
   size,
+  currentUser,
+  onOpenAuth,
+  onLogout,
   onToggleSound,
   onSelectTheme,
   onOpenLeaderboard,
@@ -45,6 +51,28 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile quick icons */}
         <div className="flex sm:hidden items-center gap-1.5">
+          {currentUser ? (
+            <button
+              onClick={onLogout}
+              title={`Logged in as ${currentUser.username}. Tap to log out.`}
+              className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 text-sky-400 font-bold text-xs flex items-center gap-1"
+            >
+              <div
+                className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] text-white"
+                style={{ background: currentUser.avatarColor || '#38bdf8' }}
+              >
+                {currentUser.username.charAt(0).toUpperCase()}
+              </div>
+            </button>
+          ) : (
+            <button
+              id="mobile-auth-btn"
+              onClick={onOpenAuth}
+              className="p-2 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-400 font-bold text-xs"
+            >
+              <UserIcon className="w-4 h-4" />
+            </button>
+          )}
           <button
             id="mobile-sound-toggle-btn"
             onClick={onToggleSound}
@@ -94,6 +122,37 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop Utility Controls */}
         <div className="hidden sm:flex items-center gap-1.5 pl-1">
+          {/* User Sign In / Profile Info */}
+          {currentUser ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/90 shadow-md">
+              <div
+                className="w-6 h-6 rounded-lg flex items-center justify-center font-black text-xs text-white uppercase shadow-sm"
+                style={{ background: currentUser.avatarColor || '#38bdf8' }}
+              >
+                {currentUser.username.charAt(0)}
+              </div>
+              <span className="text-xs font-bold text-slate-200 max-w-[90px] truncate">
+                {currentUser.username}
+              </span>
+              <button
+                onClick={onLogout}
+                title="Log Out"
+                className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              id="header-login-btn"
+              onClick={onOpenAuth}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md shadow-sky-500/20"
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>Log In</span>
+            </button>
+          )}
+
           {/* Sound Toggle */}
           <button
             id="sound-toggle-btn"
