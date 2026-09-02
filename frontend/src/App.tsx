@@ -110,7 +110,7 @@ export default function App() {
   const [initialPlayerName, setInitialPlayerName] = useState(() => getLastPlayerName() || 'Player 1');
 
   const currentTheme = THEMES[themeName] || THEMES.immersive;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Best score for current active board size
   const bestScore = bestScores[size] || 0;
