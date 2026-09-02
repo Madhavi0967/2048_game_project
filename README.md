@@ -88,6 +88,65 @@ npm run build
 
 The compiled frontend is output to `frontend/dist`.
 
+## Deploying
+
+This is a two-part app: **backend** (API + database) → **Render**, and **frontend** (React UI) → **Vercel**. This gives you a free, always-on API and a fast CDN-served UI.
+
+### Step 1 — Push your code to GitHub first
+
+Both Render and Vercel deploy from a Git repository, so create a GitHub repo and push the whole project:
+
+```
+git init
+git add -A
+git commit -m "Initial commit"
+git remote add origin https://github.com/<your-username>/<repo>.git
+git push -u origin main
+```
+
+### Step 2 — Deploy the Backend to Render
+
+1. Go to https://render.com and sign up (free).
+2. Click **New → Web Service**.
+3. Connect your GitHub repo, then set:
+   - **Root Directory:** `backend`
+   - **Build Command:** `npm install && npm run build`
+   - **Start Command:** `npm start`
+4. Under **Environment**, add these variables:
+   - `MONGODB_URI` = your MongoDB Atlas string (e.g. `mongodb+srv://Admin:nimda@admin.ec9qryc.mongodb.net/2048_app`)
+   - `PORT` = `10000` (Render provides it automatically, you can leave it unset)
+5. Click **Create Web Service**. Wait for the first deploy.
+6. When it's live, copy the URL — it looks like `https://your-backend.onrender.com`. **Test it** by opening `https://your-backend.onrender.com/api/db-status` — you should see `"isConnected": true`.
+
+> **MongoDB access note:** MongoDB Atlas only allows connections from certain IPs. If Render can't reach it, open your Atlas cluster → **Network Access** → **Add IP Address** → choose **Allow access from anywhere** (`0.0.0.0/0`), or add Render's IP.
+
+### Step 3 — Deploy the Frontend to Vercel
+
+1. Go to https://vercel.com and sign up (free).
+2. Click **Add New → Project** and import your GitHub repo.
+3. Set:
+   - **Root Directory:** `frontend`
+   - **Framework Preset:** Vite (auto-detected)
+4. Add a build-time environment variable:
+   - `VITE_API_URL` = your Render backend URL, e.g. `https://your-backend.onrender.com`
+5. Click **Deploy**.
+
+> **Important:** `VITE_API_URL` is the full URL of the *backend* (no `/api` at the end) and is baked in at build time. If you change it, redeploy Vercel.
+
+### Step 4 — Connect them
+
+In the frontend code, all API calls prepend `VITE_API_URL`. So on Vercel, requests go to `https://your-backend.onrender.com/api/...`. CORS is already enabled in the backend, so login, sign-up, and the leaderboard will work across the two domains automatically.
+
+You're done — open your `https://your-app.vercel.app` URL and play.
+
+## Troubleshooting Deployment
+
+| Problem | Fix |
+| ------- | --- |
+| Backend shows `Database status: FAILED` | MongoDB Atlas **Network Access** — add `0.0.0.0/0` and confirm `MONGODB_URI` env var is correct. |
+| Leaderboard empty / wrong names | Your MongoDB `leaderboard` collection is empty. Play and save a score — it will appear, ranked highest-first. Players with higher scores rank above. |
+| Login/signup "Failed to fetch" | Check `VITE_API_URL` on Vercel points to the Render URL, and the Render service is running. |
+
 ## API Endpoints
 
 | Method | Endpoint            | Description                        |

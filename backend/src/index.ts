@@ -376,10 +376,10 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
 async function startServer() {
   await connectToDatabase();
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log('');
     console.log('====================================================');
-    console.log(`  Backend API running at  http://localhost:${PORT}`);
+    console.log(`  Backend API running at  http://0.0.0.0:${PORT}`);
     console.log(`  Database status: ${
       dbStatus === 'connected'
         ? 'CONNECTED - MongoDB'
