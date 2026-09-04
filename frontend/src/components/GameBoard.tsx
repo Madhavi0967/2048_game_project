@@ -116,15 +116,16 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   }
 
   return (
-    <div className="relative w-full max-w-[480px] mx-auto select-none">
+    <div className="relative w-full max-w-[480px] mx-auto select-none" style={{ overscrollBehavior: 'contain' }}>
       <div
         id="game-board"
         ref={boardRef}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        style={{ touchAction: 'none' }}
         className={`relative w-full aspect-square rounded-3xl p-3 sm:p-4 shadow-2xl border backdrop-blur-sm transition-all duration-200 ${
           interactiveMode === 'swap'
-            ? 'border-sky-500/80 shadow-[0_0_30px_rgba(14,165,233,0.25)]'
+            ? 'border-sky-500/80 shadow-[0_0_30px_rgba(14,233,165,0.25)]'
             : interactiveMode === 'delete'
             ? 'border-rose-500/80 shadow-[0_0_30px_rgba(244,63,94,0.25)]'
             : 'border-slate-800/80'

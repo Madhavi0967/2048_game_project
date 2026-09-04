@@ -89,7 +89,7 @@ export const HowToPlayModal: React.FC<HowToPlayModalProps> = ({ isOpen, onClose 
                 </div>
                 <div className="flex items-start gap-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800/80">
                   <span className="font-bold text-rose-400 shrink-0">🗑 Delete (2x):</span>
-                  <span>Click any blocking low-value tile to instantly vaporize it and unlock blocked paths!</span>
+                  <span>Pick a number and all tiles with that value will be instantly vaporized to unlock blocked paths!</span>
                 </div>
               </div>
             </div>

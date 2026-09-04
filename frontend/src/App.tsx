@@ -86,6 +86,7 @@ export default function App() {
   });
   const [activePowerUp, setActivePowerUp] = useState<PowerUpType>(null);
   const [selectedTileForSwap, setSelectedTileForSwap] = useState<string | null>(null);
+  const [isDeletePickerOpen, setIsDeletePickerOpen] = useState(false);
 
   // Floating score popups
   const [pointsAdded, setPointsAdded] = useState<{ id: string; amount: number }[]>([]);
@@ -336,8 +337,15 @@ export default function App() {
       // Deactivate
       setActivePowerUp(null);
       setSelectedTileForSwap(null);
+      setIsDeletePickerOpen(false);
+    } else if (type === 'delete') {
+      // Delete: ask which number to remove (modal picker)
+      setActivePowerUp('delete');
+      setSelectedTileForSwap(null);
+      setIsDeletePickerOpen(true);
+      sound.playPowerUpSelect();
     } else {
-      // Activate
+      // Activate swap mode
       setActivePowerUp(type);
       setSelectedTileForSwap(null);
       sound.playPowerUpSelect();
@@ -347,35 +355,40 @@ export default function App() {
   const handleCancelPowerUp = () => {
     setActivePowerUp(null);
     setSelectedTileForSwap(null);
+    setIsDeletePickerOpen(false);
   };
 
-  // Handle Tile Click in Interactive Modes (Swap / Delete)
+  // Delete ALL tiles that match the chosen number
+  const handleDeleteNumber = (value: number) => {
+    if (powerUps.delete <= 0) return;
+
+    // Save to history before deleting
+    setHistory((prev) => [
+      {
+        tiles: tiles.map((t) => ({ ...t })),
+        score,
+        moveCount,
+      },
+      ...prev.slice(0, 14),
+    ]);
+
+    const updatedTiles = tiles.filter((t) => t.value !== value);
+    setTiles(updatedTiles);
+    setPowerUps((prev) => ({ ...prev, delete: Math.max(0, prev.delete - 1) }));
+    setActivePowerUp(null);
+    setIsDeletePickerOpen(false);
+    sound.playDelete();
+
+    // If game was in over state, restore to playing
+    if (status === 'over') {
+      setStatus('playing');
+      setIsGameOverModalOpen(false);
+    }
+  };
+
+  // Handle Tile Click in Interactive Modes (Swap)
   const handleTileClick = (clickedTile: Tile) => {
-    if (activePowerUp === 'delete') {
-      if (powerUps.delete <= 0) return;
-
-      // Save to history before deleting
-      setHistory((prev) => [
-        {
-          tiles: tiles.map((t) => ({ ...t })),
-          score,
-          moveCount,
-        },
-        ...prev.slice(0, 14),
-      ]);
-
-      const updatedTiles = tiles.filter((t) => t.id !== clickedTile.id);
-      setTiles(updatedTiles);
-      setPowerUps((prev) => ({ ...prev, delete: Math.max(0, prev.delete - 1) }));
-      setActivePowerUp(null);
-      sound.playDelete();
-
-      // If game was in over state, restore to playing
-      if (status === 'over') {
-        setStatus('playing');
-        setIsGameOverModalOpen(false);
-      }
-    } else if (activePowerUp === 'swap') {
+    if (activePowerUp === 'swap') {
       if (powerUps.swap <= 0) return;
 
       if (!selectedTileForSwap) {
@@ -532,6 +545,9 @@ export default function App() {
               onUndo={handleUndo}
               onTogglePowerUp={handleTogglePowerUp}
               onCancelPowerUp={handleCancelPowerUp}
+              onDeleteNumber={handleDeleteNumber}
+              isDeletePickerOpen={isDeletePickerOpen}
+              tiles={tiles}
               onRestart={() => startNewGame(size)}
               onSizeChange={handleSizeChange}
             />

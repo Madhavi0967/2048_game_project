@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RotateCcw, Undo2, Timer, Footprints, ArrowLeftRight, Trash2, X, Sparkles } from 'lucide-react';
-import { BoardSize, ThemeConfig, PowerUpsState, PowerUpType } from '../types';
+import { BoardSize, ThemeConfig, PowerUpsState, PowerUpType, Tile } from '../types';
 import { formatTime } from '../utils/gameLogic';
 
 interface ScoreBoardProps {
@@ -19,6 +19,9 @@ interface ScoreBoardProps {
   onUndo: () => void;
   onTogglePowerUp: (type: 'swap' | 'delete') => void;
   onCancelPowerUp: () => void;
+  onDeleteNumber: (value: number) => void;
+  isDeletePickerOpen: boolean;
+  tiles: Tile[];
   onRestart: () => void;
   onSizeChange: (newSize: BoardSize) => void;
 }
@@ -38,6 +41,9 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   onUndo,
   onTogglePowerUp,
   onCancelPowerUp,
+  onDeleteNumber,
+  isDeletePickerOpen,
+  tiles,
   onRestart,
   onSizeChange,
 }) => {
@@ -65,6 +71,15 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
       onRestart();
     }
   };
+
+  // Distinct tile values currently on the board, with their counts
+  const tileValues = React.useMemo(() => {
+    const counts = new Map<number, number>();
+    tiles.forEach((t) => counts.set(t.value, (counts.get(t.value) ?? 0) + 1));
+    return Array.from(counts.entries())
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => a.value - b.value);
+  }, [tiles]);
 
   return (
     <div className="w-full space-y-3">
@@ -282,7 +297,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
               ) : (
                 <>
                   <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>Click any tile on the board to vaporize/delete it!</span>
+                  <span>Choose a number below to delete all tiles with that value.</span>
                 </>
               )}
             </div>
@@ -296,6 +311,73 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
               <span>Cancel</span>
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Number Picker Modal */}
+      <AnimatePresence>
+        {isDeletePickerOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onCancelPowerUp}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="w-full max-w-sm rounded-3xl border border-rose-500/40 bg-slate-950/95 shadow-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Trash2 className="w-5 h-5 text-rose-400" />
+                    <h3 className="text-base font-bold text-white">Delete a number</h3>
+                  </div>
+                  <button
+                    onClick={onCancelPowerUp}
+                    className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 cursor-pointer transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                  Select a tile value. <span className="text-rose-300 font-semibold">All</span> tiles with that number
+                  on the board will be deleted. This uses 1 delete power-up.
+                </p>
+
+                {tileValues.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {tileValues.map(({ value, count }) => (
+                      <button
+                        key={value}
+                        onClick={() => onDeleteNumber(value)}
+                        className="relative flex flex-col items-center gap-0.5 rounded-2xl py-3 border border-slate-700 bg-slate-900/80 hover:bg-rose-500/20 hover:border-rose-500/60 text-white font-bold text-lg transition-colors cursor-pointer group"
+                      >
+                        <span className="text-2xl font-extrabold">{value}</span>
+                        <span className="text-[10px] font-medium text-slate-400 group-hover:text-rose-200">
+                          {count} tile{count > 1 ? 's' : ''}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 text-center py-4">No tiles on the board to delete.</p>
+                )}
+
+                <button
+                  onClick={onCancelPowerUp}
+                  className="mt-4 w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
