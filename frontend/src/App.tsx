@@ -482,6 +482,7 @@ export default function App() {
     return (
       <AuthScreen
         onAuthenticated={(user) => {
+          setStoredUser(user);
           setCurrentUser(user);
           setInitialPlayerName(user.username);
           setHasEnteredGame(true);
@@ -631,6 +632,7 @@ export default function App() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={(user) => {
+          setStoredUser(user);
           setCurrentUser(user);
           setInitialPlayerName(user.username);
         }}
