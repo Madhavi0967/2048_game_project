@@ -3,23 +3,42 @@ import { API_BASE } from './api';
 
 const USER_STORAGE_KEY = '2048_active_user';
 const USERS_LIST_KEY = '2048_registered_users';
+const SESSION_FLAG_KEY = '2048_session_active';
 
 export function getStoredUser(): UserProfile | null {
   try {
     const raw = localStorage.getItem(USER_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    if (!raw) {
+      // Fallback: if the session flag exists but user data is gone, clear the stale flag
+      localStorage.removeItem(SESSION_FLAG_KEY);
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.id || !parsed.username) {
+      localStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(SESSION_FLAG_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(SESSION_FLAG_KEY);
     return null;
   }
+}
+
+export function hasActiveSession(): boolean {
+  return localStorage.getItem(SESSION_FLAG_KEY) === 'true';
 }
 
 export function setStoredUser(user: UserProfile | null): void {
   try {
     if (!user) {
       localStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(SESSION_FLAG_KEY);
     } else {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      localStorage.setItem(SESSION_FLAG_KEY, 'true');
     }
   } catch (e) {
     console.error('Failed to save user session', e);

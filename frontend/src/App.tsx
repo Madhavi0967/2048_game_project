@@ -18,7 +18,7 @@ import {
 } from './types';
 import { THEMES } from './utils/themes';
 import { sound } from './utils/sound';
-import { getStoredUser, logoutUser } from './utils/auth';
+import { getStoredUser, setStoredUser, logoutUser } from './utils/auth';
 import {
   initializeBoard,
   moveBoard,
